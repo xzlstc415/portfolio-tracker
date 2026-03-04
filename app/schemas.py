@@ -40,8 +40,14 @@ class StockRecordResponse(BaseModel):
     last_updated: Optional[datetime] = None
     market_value: float = 0.0
     profit_loss: float = 0.0
+    weight_pct: Optional[float] = None
 
     model_config = {"from_attributes": True}
+
+
+class StockRecordUpdate(BaseModel):
+    quantity: Optional[float] = None
+    buy_price: Optional[float] = None
 
 
 class StockLookupResponse(BaseModel):

@@ -31,6 +31,14 @@
   const $stockQty = document.getElementById("stock-qty");
   const $stockBuyPrice = document.getElementById("stock-buy-price");
   const $lastUpdated = document.getElementById("last-updated");
+  const $editModal = document.getElementById("edit-stock-modal");
+  const $editModalBackdrop = document.getElementById("edit-modal-backdrop");
+  const $editModalCancel = document.getElementById("edit-modal-cancel");
+  const $editForm = document.getElementById("edit-stock-form");
+  const $editStockId = document.getElementById("edit-stock-id");
+  const $editStockLabel = document.getElementById("edit-stock-label");
+  const $editQty = document.getElementById("edit-qty");
+  const $editBuyPrice = document.getElementById("edit-buy-price");
 
   // ── API helpers ───────────────────────────────────────────
   async function api(path, opts = {}) {
@@ -185,7 +193,11 @@
         <td class="px-4 py-3 text-sm text-right text-gray-600">${fmt(s.buy_price)}</td>
         <td class="px-4 py-3 text-sm text-right text-gray-900 font-medium">${fmt(s.market_value)}</td>
         <td class="px-4 py-3 text-sm text-right font-medium ${plClass}">${plPrefix}${fmt(pl)}</td>
-        <td class="px-4 py-3 text-right">
+        <td class="px-4 py-3 text-sm text-right text-gray-700">${s.weight_pct != null ? s.weight_pct.toFixed(2) + "%" : "—"}</td>
+        <td class="px-4 py-3 text-right space-x-1">
+          <button data-edit='${JSON.stringify({id:s.id,ticker:s.ticker,company_name:s.company_name,quantity:s.quantity,buy_price:s.buy_price})}' class="text-gray-400 hover:text-indigo-600 transition-colors" title="Edit">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+          </button>
           <button data-remove="${s.id}" class="text-gray-400 hover:text-red-600 transition-colors" title="Remove">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
           </button>
@@ -204,6 +216,12 @@
   }
 
   $stocksTbody.addEventListener("click", async (e) => {
+    const editBtn = e.target.closest("[data-edit]");
+    if (editBtn) {
+      const stock = JSON.parse(editBtn.dataset.edit);
+      openEditModal(stock);
+      return;
+    }
     const btn = e.target.closest("[data-remove]");
     if (!btn) return;
     const id = Number(btn.dataset.remove);
@@ -288,6 +306,38 @@
       body: JSON.stringify(body),
     });
     closeModal();
+    loadStocks();
+    loadPortfolios();
+  });
+
+  // ── Edit Stock Modal ───────────────────────────────────────
+  function openEditModal(stock) {
+    $editStockId.value = stock.id;
+    $editStockLabel.textContent = `${stock.ticker} — ${stock.company_name}`;
+    $editQty.value = stock.quantity;
+    $editBuyPrice.value = stock.buy_price;
+    $editModal.classList.remove("hidden");
+  }
+
+  function closeEditModal() {
+    $editModal.classList.add("hidden");
+  }
+
+  $editModalCancel.addEventListener("click", closeEditModal);
+  $editModalBackdrop.addEventListener("click", closeEditModal);
+
+  $editForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const id = $editStockId.value;
+    const body = {
+      quantity: parseFloat($editQty.value),
+      buy_price: parseFloat($editBuyPrice.value),
+    };
+    await api(`/api/stocks/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+    closeEditModal();
     loadStocks();
     loadPortfolios();
   });

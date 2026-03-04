@@ -86,6 +86,7 @@
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Buy Price</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Mkt Value</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">P/L</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Weight</th>
                 <th class="px-4 py-3"></th>
               </tr>
             </thead>
@@ -97,6 +98,35 @@
         </div>
       </div>
     </main>
+  </div>
+
+  <!-- Edit Stock Modal -->
+  <div id="edit-stock-modal" class="fixed inset-0 z-50 hidden">
+    <div class="fixed inset-0 bg-black/40" id="edit-modal-backdrop"></div>
+    <div class="fixed inset-0 flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 relative fade-in">
+        <h3 class="text-lg font-semibold text-gray-900 mb-1">Edit Stock</h3>
+        <p id="edit-stock-label" class="text-sm text-gray-500 mb-4"></p>
+
+        <form id="edit-stock-form" class="space-y-4">
+          <input type="hidden" id="edit-stock-id" />
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+              <input id="edit-qty" type="number" min="0" step="any" required class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Buy Price</label>
+              <input id="edit-buy-price" type="number" min="0" step="any" required class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            </div>
+          </div>
+          <div class="flex justify-end gap-3 pt-2">
+            <button type="button" id="edit-modal-cancel" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">Cancel</button>
+            <button type="submit" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 
   <!-- Add Stock Modal -->

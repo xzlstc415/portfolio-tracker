@@ -5,13 +5,15 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Portfolio, StockRecord
-from ..schemas import StockLookupResponse, StockRecordCreate, StockRecordResponse
-from ..services.stock_data import lookup_ticker, refresh_prices
+from ..schemas import StockLookupResponse, StockRecordCreate, StockRecordResponse, StockRecordUpdate
+from ..services.stock_data import convert_to_usd, get_exchange_rates, lookup_ticker, refresh_prices
 
 router = APIRouter(tags=["stocks"])
 
 
-def _stock_to_response(s: StockRecord) -> StockRecordResponse:
+def _stock_to_response(
+    s: StockRecord, weight_pct: float | None = None
+) -> StockRecordResponse:
     price = s.current_price or s.buy_price
     market_value = round(price * s.quantity, 2)
     profit_loss = round((price - s.buy_price) * s.quantity, 2)
@@ -28,6 +30,7 @@ def _stock_to_response(s: StockRecord) -> StockRecordResponse:
         last_updated=s.last_updated,
         market_value=market_value,
         profit_loss=profit_loss,
+        weight_pct=weight_pct,
     )
 
 
@@ -39,7 +42,25 @@ def list_stocks(portfolio_id: int, db: Session = Depends(get_db)):
     portfolio = db.query(Portfolio).filter(Portfolio.id == portfolio_id).first()
     if not portfolio:
         raise HTTPException(status_code=404, detail="Portfolio not found")
-    return [_stock_to_response(s) for s in portfolio.stocks]
+
+    stocks = portfolio.stocks
+    if not stocks:
+        return []
+
+    rates = get_exchange_rates()
+
+    usd_values: list[float] = []
+    for s in stocks:
+        price = s.current_price or s.buy_price
+        native_value = price * s.quantity
+        usd_values.append(convert_to_usd(native_value, s.market, rates))
+
+    total_usd = sum(usd_values)
+    result = []
+    for s, usd_val in zip(stocks, usd_values):
+        pct = round(usd_val / total_usd * 100, 2) if total_usd > 0 else 0.0
+        result.append(_stock_to_response(s, weight_pct=pct))
+    return result
 
 
 @router.post(
@@ -67,6 +88,24 @@ def add_stock(
         last_updated=datetime.now(timezone.utc),
     )
     db.add(record)
+    db.commit()
+    db.refresh(record)
+    return _stock_to_response(record)
+
+
+@router.patch("/api/stocks/{stock_id}", response_model=StockRecordResponse)
+def update_stock(
+    stock_id: int,
+    data: StockRecordUpdate,
+    db: Session = Depends(get_db),
+):
+    record = db.query(StockRecord).filter(StockRecord.id == stock_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Stock record not found")
+    if data.quantity is not None:
+        record.quantity = data.quantity
+    if data.buy_price is not None:
+        record.buy_price = data.buy_price
     db.commit()
     db.refresh(record)
     return _stock_to_response(record)
